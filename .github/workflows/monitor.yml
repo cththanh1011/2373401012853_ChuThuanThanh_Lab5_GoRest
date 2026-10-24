@@ -34,3 +34,14 @@ jobs:
           fi
 
           echo "API check passed"
+      - name: Save monitoring report
+        if: always()
+        run: |
+          mkdir -p reports
+          echo "GoRest API Monitoring Report" > reports/monitor-report.txt
+          echo "Checked at: $(date -u)" >> reports/monitor-report.txt
+          curl -sS -o /dev/null \
+            -w "HTTP status: %{http_code}\nResponse time: %{time_total}s\n" \
+            'https://gorest.co.in/public/v2/users' \
+            >> reports/monitor-report.txt
+          cat reports/monitor-report.txt
