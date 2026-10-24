@@ -1,0 +1,36 @@
+
+name: Monitor GoRest API
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check API response time
+        run: |
+          response=$(curl -sS -o /dev/null \
+            -w '%{http_code} %{time_total}' \
+            'https://gorest.co.in/public/v2/users')
+
+          status=$(echo "$response" | awk '{print $1}')
+          time=$(echo "$response" | awk '{print $2}')
+
+          echo "HTTP status: $status"
+          echo "Response time: ${time}s"
+
+          if [ "$status" -ne 200 ]; then
+            echo "API check failed: unexpected HTTP status"
+            exit 1
+          fi
+
+          if ! awk -v t="$time" 'BEGIN { exit !(t < 0.8) }'; then
+            echo "API check failed: response time is not under 800ms"
+            exit 1
+          fi
+
+          echo "API check passed"
